@@ -15,6 +15,8 @@
       margin: 0;
       padding: 0;
       background-color: #121212;
+                font-size: 0.9rem;
+      
       color: #ffffff;
     }
     header {
@@ -546,7 +548,8 @@
       // *** Новий рендерінг: проходимо список часів у півгодинних інтервалах і об'єднуємо
       // послідовні слоти подій у єдиний блок. Це дозволяє уникнути розбиття запису
       // годинними або півгодинними лініями, щоб він виглядав монолітним, як у прикладі.
-      const baseHeight = 48; // висота одного півгодинного слоту (32px + відступи)
+      const baseHeight = 24;
+      
       // Початковий час у хвилинах (наприклад, 10:00 -> 600 хвилин)
       let currentMinutes = startHour * 60;
       const endMinutes = endHour * 60;
@@ -566,9 +569,9 @@
           // монолітний блок: без вертикальних відступів, розтягнутий на всю висоту
           row.style.display = 'flex';
           row.style.alignItems = 'stretch';
-          row.style.padding = '0 0.5rem';
-          row.style.minHeight = `${baseHeight * slotCount}px`;
-          row.style.borderBottom = '1px solid #333';
+          row.style.padding = '0.3rem';
+          row.style.min`eight = `${baseHeight * s`otCount}px`;
+row.style.borderBottom = '1px solid #333';
           const timeLabel = document.createElement('span');
           timeLabel.style.width = '60px';
           timeLabel.style.fontWeight = 'bold';
@@ -605,8 +608,8 @@
         const freeRow = document.createElement('div');
         freeRow.style.display = 'flex';
         freeRow.style.alignItems = 'center';
-        freeRow.style.padding = '0.5rem';
-        freeRow.style.minHeight = '32px';
+        freeRow.style.padding = '0.3rem';
+        freeRow.style.minHeight = '20px';
         // для цілих годин суцільна лінія, для половинок — пунктир
         freeRow.style.borderBottom = minutes === 0 ? '1px solid #333' : '1px dashed #444';
         const label = document.createElement('span');
