@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Зміна назви програми на Grotesk booking -->
+  <title>Grotesk booking</title>
+  <style>
+    /*
+      Тёмная тема: чёрный фон, белый текст и оранжевые акценты.
+      Все элементы адаптированы для украинского языка.
+    */
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #121212;
+      color: #ffffff;
+    }
+    header {
+      background-color: #ff9800;
+      color: #000000;
+      padding: 1rem;
+      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    main {
+      padding: 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    section {
+      margin-bottom: 2rem;
+      background-color: #1e1e1e;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      padding: 1rem;
+    }
+    h2 {
+      margin-top: 0;
+      color: #ff9800;
+    }
+    label {
+      display: block;
+      margin-top: 0.5rem;
+      font-weight: bold;
+      color: #ffb74d;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      box-sizing: border-box;
+      border: 1px solid #555;
+      border-radius: 4px;
+      background-color: #2a2a2a;
+      color: #ffffff;
+    }
+    button {
+      width: auto;
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      background-color: #ff9800;
+      color: #000000;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #e68900;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.5rem;
+      border: 1px solid #444;
+      text-align: left;
+      color: #ffffff;
+    }
+    th {
+      background-color: #333;
+    }
+    .notice {
+      font-size: 0.9rem;
+      color: #999;
+    }
+    /* Кнопки сервисов в модальном окне */
+    .service-icon {
+      /* Відображення іконок послуг у рядок.  
+         Ширина й висота трохи збільшені, щоб іконки було видно краще.  
+         Текст під іконкою дрібний і не займає багато місця. */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 70px;
+      height: 70px;
+      background-color: #2a2a2a;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 28px;
+      color: #ff9800;
+    }
+    .service-icon.selected {
+      border-color: #ff9800;
+      background-color: #333;
+    }
+    .service-icon span {
+      font-size: 9px;
+      color: #ffb74d;
+      margin-top: 2px;
+      text-align: center;
+    }
+
+    /* Стилі для стрілок навігації по днях */
+    .nav-arrow {
+      background-color: #ff9800;
+      color: #000000;
+      border: none;
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .nav-arrow:hover {
+      background-color: #e68900;
+    }
+
+    /* Додаткові кольори для робочих днів і поєднання робочого дня з вибраним днем. */
+    /* Зелений фон для робочого дня */
+    .working-day {
+      background-color: #4caf50;
+      color: #000;
+    }
+    /* Поєднання оранжевого (активного) та зеленого (робочого) дня: середній колір */
+    .working-selected-day {
+      background-color: #a5a428;
+      color: #000;
+    }
+
+    /* Підказки контактів реалізовані за допомогою елемента datalist, тому додаткові стилі не потрібні */
+  </style>
+</head>
+<body>
+  <header>
+    <!-- Заголовок програми -->
+    <h1>Grotesk booking</h1>
+  </header>
+  <main>
+    <!-- Раздел расписания (первый экран) -->
+    <section id="schedule-section">
+      <h2>Розклад</h2>
+      <!-- навігація по днях з кнопками переміщення -->
+      <div class="date-nav-container" style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+        <button id="prev-day-btn" class="nav-arrow">←</button>
+        <div id="date-nav" style="display:flex; gap:5px; flex-wrap:wrap; flex:1;"></div>
+        <button id="next-day-btn" class="nav-arrow">→</button>
+      </div>
+      <!-- список временных слотов -->
+      <div id="schedule-list" style="border:1px solid #ddd; border-radius:8px; overflow:hidden;"></div>
+      <!-- кнопка для перехода к управлению контактами -->
+      <button id="goto-contacts" style="margin-top:1rem; margin-right:0.5rem;">Контакти</button>
+      <!-- кнопка для управління робочими днями (називаємо її Green Days) -->
+      <button id="manage-working-days" style="margin-top:1rem;">Green Days</button>
+      <!-- кнопка для резервного копіювання та відновлення даних -->
+      <button id="manage-backup" style="margin-top:1rem; margin-left:0.5rem;">Бекап</button>
+    </section>
+    <section id="contacts-section" style="display:none;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Контакти</span>
+        <!-- Кнопка повернення до розкладу вгорі -->
+        <button id="back-to-schedule" style="margin-left:auto;">← Назад</button>
+      </h2>
+      <p class="notice">Збережені контакти використовуються при створенні записів. Ви можете додати їх вручну або імпортувати список.</p>
+      <div>
+        <label for="contact-name">Ім'я:</label>
+        <input type="text" id="contact-name" placeholder="Введіть ім'я" />
+        <label for="contact-phone">Телефон:</label>
+        <input type="tel" id="contact-phone" placeholder="Введіть телефон" />
+        <button id="add-contact-btn">Додати контакт</button>
+      </div>
+      <div>
+        <label for="import-contacts">Імпорт контактів (CSV або VCF):</label>
+        <input type="file" id="import-contacts" accept=".csv,.vcf" />
+      </div>
+      <table id="contacts-table">
+        <thead>
+          <tr>
+            <th>Ім'я</th>
+            <th>Телефон</th>
+            <th>Дія</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <!-- Додаткова кнопка повернення до розкладу внизу для зручності -->
+      <button id="back-to-schedule-bottom" style="margin-top:1rem;">← Назад до розкладу</button>
+    </section>
+
+    <!-- Секція для вибору робочих днів -->
+    <section id="working-days-section" style="display:none;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Вибір робочих днів</span>
+        <button id="back-from-working-days" style="margin-left:auto;">← Назад</button>
+      </h2>
+      <p class="notice">Натискайте на дати, щоб відмітити/зняти робочі дні. Робочі дні виділені зеленим кольором.</p>
+      <!-- Навігація по місяцях -->
+      <div id="working-days-controls" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:0.5rem;">
+        <button id="prev-month-btn" class="nav-arrow">←</button>
+        <div id="current-month-label" style="flex:1; text-align:center; color:#ff9800; font-weight:bold;"></div>
+        <button id="next-month-btn" class="nav-arrow">→</button>
+      </div>
+      <!-- Контейнер для календаря -->
+      <div id="working-days-calendar" style="margin-top:0.5rem;"></div>
+      <button id="save-working-days" style="margin-top:1rem;">Зберегти</button>
+    </section>
+
+    <!-- Секція резервного копіювання та відновлення даних -->
+    <section id="backup-section" style="display:none;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Бекап</span>
+        <button id="back-from-backup" style="margin-left:auto;">← Назад</button>
+      </h2>
+      <p class="notice">Ви можете зберегти всі контакти, записи та робочі дні у файл або завантажити раніше збережений файл для відновлення.</p>
+      <div style="margin-bottom:1rem;">
+        <button id="export-backup-btn">Вивантажити дані</button>
+      </div>
+      <div>
+        <label for="import-backup-input">Імпорт резервної копії (.json):</label>
+        <input type="file" id="import-backup-input" accept=".json" />
+      </div>
+    </section>
+    <section id="services-section" style="display:none;">
+      <h2>Послуги</h2>
+      <p class="notice">Нижче список доступних послуг. Ви можете змінити їх при необхідності.</p>
+      <div id="services-list"></div>
+    </section>
+    <section id="appointments-section" style="display:none;">
+      <h2>Створити запис</h2>
+      <div>
+        <label for="appointment-date">Дата:</label>
+        <input type="date" id="appointment-date" />
+        <label for="appointment-start">Початок (час):</label>
+        <input type="time" id="appointment-start" />
+        <label for="appointment-end">Кінець (час):</label>
+        <input type="time" id="appointment-end" />
+        <label for="appointment-contact">Контакт:</label>
+        <select id="appointment-contact"></select>
+        <label for="appointment-service">Послуга:</label>
+        <select id="appointment-service"></select>
+        <button id="add-appointment-btn">Додати запис</button>
+      </div>
+      <h3>Список записів</h3>
+      <table id="appointments-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Час</th>
+            <th>Контакт</th>
+            <th>Послуга</th>
+            <th>Дія</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+  <!-- Модальное окно для создания новой записи -->
+  <div id="appointment-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:1000;">
+    <div style="background-color:#1e1e1e; padding:1rem; border-radius:8px; max-width:420px; width:90%; color:#fff;">
+      <h3>Нова запис</h3>
+      <p id="modal-time-display" style="font-weight:bold; margin-bottom:0.5rem;"></p>
+      <label for="modal-contact-input">Клієнт:</label>
+      <!-- Обгортка для поля вводу та випадаючих підказок -->
+      <div style="position: relative;">
+        <input type="text" id="modal-contact-input" placeholder="Введіть ім'я клієнта" autocomplete="off" list="contact-options" style="width:100%;" />
+        <!-- Datalist для автозаповнення контактів -->
+        <datalist id="contact-options"></datalist>
+      </div>
+      <label for="modal-contact-phone">Телефон:</label>
+      <input type="tel" id="modal-contact-phone" placeholder="Номер телефону (необов'язково)" />
+      <label>Послуга:</label>
+      <div id="service-icon-list" style="display:flex; gap:0.5rem; margin-top:0.25rem;"></div>
+      <!-- Поля для вибору часу початку і закінчення з кроком 15 хвилин -->
+      <label for="modal-start-time">Початок:</label>
+      <!-- крок 30 хвилин (1800 секунд) для відповідності розкладу -->
+      <input type="time" id="modal-start-time" step="1800" />
+      <label for="modal-end-time">Кінець:</label>
+      <input type="time" id="modal-end-time" step="1800" />
+      <div style="margin-top:1rem; display:flex; justify-content:space-between; gap:0.5rem;">
+        <!-- Кнопка збереження/оновлення -->
+        <button id="modal-save-btn">Зберегти</button>
+        <!-- Кнопка видалення. Відображається лише у режимі редагування -->
+        <button id="modal-delete-btn" style="background-color:#c62828; color:#fff; display:none;">Видалити</button>
+        <!-- Кнопка скасування -->
+        <button id="modal-cancel-btn" style="background-color:#444; color:#fff;">Скасувати</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Допоміжна функція для форматування дати у форматі YYYY-MM-DD з локальним часовим поясом
+    function formatDateLocal(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      const d = dateObj.getDate().toString().padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    // Инициализируем услуги (5 штук по умолчанию)
+    // Список послуг з ідентифікаторами, назвами та емоджі-іконками.
+    // Список послуг з ідентифікаторами, назвами та шляхом до відповідної іконки.
+    /*
+      Перелік послуг з ідентифікаторами, тривалістю (у хвилинах) та вбудованими
+      іконками у форматі Data URI. Це усуває необхідність завантажувати
+      окремі файли, що вирішує проблему, коли картинки не відображались на
+      мобільному пристрої користувача. Тривалість використовується для
+      автоматичного заповнення часу закінчення під час створення запису.
+    */
+    const defaultServices = [
+      {
+        id: 1,
+        name: 'чоловіча стрижка',
+        duration: 60,
+        img:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkBAMAAAATLoWrAAAAMFBMVEX/dwT9cgP+bwL5bgPlZQPBVQSjSASHOwJRIwIlEAEHAwADAQACAQABAAAAAAEAAABt7T4KAAAB40lEQVR4nE2SMUzbQBSGL6GkjGlSkNhsk6UbxmUHCqViSgVNwpSh1LBQloaAGEBUIAxFFkJtCgtLC02aKGtVg27q0CbmJhZI5K1LByaCE591vYtjJyfZsj/9d/fe/z9AnIU17dxwPkHzXS21fj1UIqT+eUf57ugYskkuMxP0PV8lN5pODIbQWXzEH5lPp5Xblsr+GX0WFifGggDEd3ZthhpmlyDwgyGJe/oqtqszhDIUCQOiMCzLK8SgyDL7omIo1Cs+GueAL1GhSP8Seecf4gOiwA9IUsCiCB1wk68fDAaikiTw/kiRFgE3BD4+9yY4BwAYng6fIIo2he7VupJZ2F5RPoUjDKFNcYpA1gOtZ/Qx24gOuaU8Pi8hTdPgyz5Mjze+covQ8cC+Hn3IbmzUuvOuNfr7J2WmOuv5ZxAH4rsp2jY25f6K6571K6ZCYN2pLywXVa+UJAJW7cOCh9DptyWKzLe5tu+52joE9p9Z0pHFxwLrcevIA5WjBKsLm6mCKyvHVMRcvfy736oe/07iZhyNH8kLBzVq+0UnRzSPmzIMt/KtaMuna1inZ8P7WeylnVIJRqQeKyJ3Jsp1WYE4m1Jxe3KguZxelvcso43oruxxkcCO+SL4wnk6EL2j6rbgofb6D6c66k6Bw9rFAAAAAElFTkSuQmCC'
+      },
+      {
+        id: 2,
+        name: 'стрижка з бородою',
+        duration: 90,
+        img:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkBAMAAAATLoWrAAAAMFBMVEX/eAT+cwP+cAL5bwP0agLbYQOvTQN5NQJGHgEdDAEGAgACAQABAQABAAAAAAEAAADAaB5aAAACEklEQVR4nEWSz28SQRTHB1u6PXZXfniUgTb1VrYHr6YI2hsg0tiLpNpS4gFCA0u8EA5S2gsXW6mp4WLRYszeqmG6mbPRhrOg2aN/gYXdYTPu7CLMYWbymfdm5n3fF1B7fG+3O6hrbYE1I2QtRJ0iShuSVDrAVLGRgXqNg5Mqn4xuyJOo4XOYrB/NSvzuyyuGDO3wY63Ae06Cy1u3In0LdRKPAjvxe5tbXO5u6LTLEnFBgOGiaz7H5e67ZYZIK7Idgg9iXMobvx3JEBPhii8cc9yIL8VcwFOYQ6qJ8qKQ3klA3vU4XVwLNBmqiA8pPTe/JtOWa9FGwWz7k1VPW1tzKwy9Fl9g+guhS5X89HvY9aMLXxbbhRIt5GVIHzg/q+PicWX9ykTdN5xOx0x9/8SgwPiW3uiNg6h6VixjQAbZoj5F50+7gAyzVTJBx1+zGBi9zLFh6qgwlZX96zo2/yX9PcUjmXYJprJUReaL/dZeWcbknSYT1Enu9pmEo1frulYIJ5J1+scrq0zCH9fOwz3gfrYw9zY/r1vtIBfC4lKpqdfyYWG5bzCkD2ZFju5L9Mwn3iF21NAPA+moQ4rB4KZq9xGnRAhuikDw+5vYRpdHM/wqhKtwhSPjbo/01IwIIRSdZSYc+M0yv0SBABdAhkw8MaIftlcc4RLFUzP1qd6oNS0rTfzVY+esTQY1/lvOQEgZb/8BUxu7oxiBEd8AAAAASUVORK5CYII='
+      },
+      {
+        id: 3,
+        name: 'стрижка під машинку і борода',
+        duration: 60,
+        img:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkBAMAAAATLoWrAAAAMFBMVEX/dwP+cgP+cAL7cAP7bgLtaQOhSANlLAJEHQEeDQEKBAADAQACAQABAAAAAAEAAAAb/ldZAAABhElEQVR4nF3SPU/CQBgA4EIUHAs00REv/ABUoo58NMyiCagxUWJExQEXvhZxkUacHDBoNN0whoHJOJTkZgPkdjXpjD9AaK7NSS2lV2+4uzx37328dwwxiiZJHdnoMkajwnGFEU0QC8VriGWLsHK06OGSomYRvHIG+CgbbyOT8CjCA8Dz4WzfpF49AICPYRwufbU/gukoAP5kSciIyCBV4aNe4NYH25NAPBzHBfe7kgTNHfHPTNQT3OsT6/TyKxeKhdyYIlRnGYY56dloNlPMIJmm26y+L7HNahy3JJkmuVktPiJCE3kuCJDYSB0W71qajfCoJCgVPfLLTI46Eh7edzqEfE5naUr5bLCGkUZenqYprFTLWxcqfNtYwBOSa8r9pkv8PoinTEI1pCTCq4VtUbBI/UjEWDbXPFXNwButn474+NT5rjZ9NAIvl7xeP7eOp689voFjGXD8PEUE5p0rIOCmCSuHDi4yRxOBg3yQySGaxv+pUdYITX9/DNmJkG6H/Cej/AIOGgHqrT4DjAAAAABJRU5ErkJggg=='
+      },
+      {
+        id: 4,
+        name: 'стрижка бороди',
+        duration: 30,
+        img:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkBAMAAAATLoWrAAAAMFBMVEX/dgT+cAP+bwL8bwL9bQHrZgO8UwN8NgJCHAENBQADAQACAQABAAAAAQAAAAEAAAD9HGGiAAABj0lEQVR4nK3ST0sCQRQA8LH809FR8e5kndXtC+y6da4Iq5sFInZIISiCQDskRoc9eRChva/CXMOCPUZl7MfoG7S7MwuvGSW0pFvzTu/Hm2HmzUOwsBDwpx9gC1qsYh8GnaXcb9qIfV7NEfNOBbl1e46e65IOA5k4IiDgnxNaeRVnUDZgonrcrVPEvCgDoCJs9g601ZS0aQxH/nm1vW8+8lFZEPfUGrPbKI7wPgzcjCR/J2q6cRQ5WkI11sgbFMG4rB600tVb76ISay+vmTYC2tBx8U7ew9vGenoo3kivC3qqb/V6lrVbTMaYIKcbSqjN+7Mt5m3omRVJzA1n1YOX43XzJplQT2RzuL+nEVxJaSVdI7kmlf2iDRUnsbaKs1k90nckPXaXiaYQoigZRRwliXlhDZMEwRjLfZNG00ZeACE4GbWcKTF3ScsQQbnaOJhSQM9S+QLRczFqw5SAe+WQosQjxht8E9CHCgqVLrkzIwZ+p2MChRmB7DsfAp8j4Jb1PQhIftfvMVmciX+h4K+qL3Hx4djW1R2RAAAAAElFTkSuQmCC'
+      },
+      {
+        id: 5,
+        name: 'камуфляж волосся',
+        duration: 30,
+        img:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkBAMAAAATLoWrAAAAMFBMVEX/dwX+cgP+bwL7bwP5bALzaALGWAOXQgKBNwFCHQIZCgAEAgACAQABAAAAAAEAAAAyRNP4AAABXUlEQVR4nF2SMU/CQBiGSwIVNzAQZk4c3BpwcbOVH1CNkuAGiZEEV1PiYp1kMw4MMMjUEAbTVRDT1YShu1ZvdXBvau9y9oq99niHJn36fF/fXioQmk9n8bJYOHZ4I9ALJslQBMl8OhqOhnOTIeQ19KzaEQbNH4Z+5avS0UXmdhexXXbrXFQbmVaXDWJLPwH5elm+sWPrAdDI4xhBo0BR0YQMITe1BcC26MRV/e90rbZXz/oxQp4QJLUZdsACHcfvGs01Tnzjc6+v9e+0xPqvSWhpXInTMI82ZmjS6wfRzNjCs3Y+l891XuNdhHjHh3IzcYRBV2tQ2TGXMIGI76Y3fM4i/ls6u+QRcoslxCNoVMTV+2CELL0qja3ICp99tJWDSzs5iDwFlM8wj4Jz3kcRwiGqAsBb2G8pUhdyJWxdke6t1f/yjxyjkHniLeSpzbX2BM5MuIYQiSSGiBNJ5A9TeAhiUk4PQwAAAABJRU5ErkJggg=='
+      }
+    ];
+
+    // Змінні для збереження вибраного контакту та послуги в модальному вікні.
+    let selectedContactIndex = null;
+    let selectedServiceId = null;
+
+    // Храним контакты и записи в localStorage
+    function getContacts() {
+      return JSON.parse(localStorage.getItem('contacts') || '[]');
+    }
+
+    function saveContacts(contacts) {
+      localStorage.setItem('contacts', JSON.stringify(contacts));
+    }
+
+    function getAppointments() {
+      return JSON.parse(localStorage.getItem('appointments') || '[]');
+    }
+
+    function saveAppointments(appointments) {
+      localStorage.setItem('appointments', JSON.stringify(appointments));
+    }
+
+    // Робочі дні зберігаються у localStorage під ключем 'workingDays' як масив рядків 'YYYY-MM-DD'
+    function getWorkingDays() {
+      return JSON.parse(localStorage.getItem('workingDays') || '[]');
+    }
+
+    function saveWorkingDays(days) {
+      localStorage.setItem('workingDays', JSON.stringify(days));
+    }
+
+    // Обновление таблицы контактов
+    function renderContacts() {
+      const contacts = getContacts();
+      const tbody = document.querySelector('#contacts-table tbody');
+      tbody.innerHTML = '';
+      contacts.forEach((contact, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${contact.name}</td>
+          <td>${contact.phone}</td>
+          <td><button data-index="${index}" class="delete-contact-btn">Видалити</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      // Обновляем select контактов
+      const contactSelect = document.getElementById('appointment-contact');
+      contactSelect.innerHTML = '<option value="">Виберіть контакт</option>';
+      contacts.forEach((contact, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${contact.name} (${contact.phone})`;
+        contactSelect.appendChild(option);
+      });
+
+      // Модальне вікно оновиться автоматично під час відкриття
+    }
+
+    // Обновление услуг
+    function renderServices() {
+      const servicesContainer = document.getElementById('services-list');
+      servicesContainer.innerHTML = '';
+      defaultServices.forEach(service => {
+        const p = document.createElement('p');
+        p.textContent = `${service.id}. ${service.name}`;
+        servicesContainer.appendChild(p);
+      });
+      const serviceSelect = document.getElementById('appointment-service');
+      serviceSelect.innerHTML = '<option value="">Виберіть послугу</option>';
+      defaultServices.forEach((service) => {
+        const option = document.createElement('option');
+        option.value = service.id;
+        option.textContent = service.name;
+        serviceSelect.appendChild(option);
+      });
+    }
+
+    // Функція-заглушка: списки у модальному вікні оновлюються динамічно
+    function updateModalSelects() {
+      // Порожня: більше не використовується
+    }
+
+    // Поточна дата (сьогодні) та вибрана дата (спочатку теж сьогодні).
+    const todayDate = formatDateLocal(new Date());
+    // Дата, з якої починається відображення навігації. Початково — сьогодні.
+    let navStartDate = todayDate;
+    // Поточно вибрана дата. Початково — сьогодні.
+    let currentDate = todayDate;
+
+    // Генерує масив дат для навігації: 7 днів, починаючи з startDate.
+    function generateDateRange(startDate) {
+      const result = [];
+      // Розбираємо startDate (формат YYYY-MM-DD) та створюємо локальний об’єкт дати
+      const parts = startDate.split('-').map(Number);
+      const base = new Date(parts[0], parts[1] - 1, parts[2]);
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(base);
+        date.setDate(base.getDate() + i);
+        result.push(date);
+      }
+      return result;
+    }
+
+    // Відображення навігації по днях. Завжди починається з сьогоднішньої дати
+    // (todayDate). Виділяє вибрану дату оранжевим кольором.
+    function renderDateNav() {
+      const dateNav = document.getElementById('date-nav');
+      dateNav.innerHTML = '';
+      // Створюємо масив дат, починаючи з navStartDate
+      const dates = generateDateRange(navStartDate);
+      // Якщо поточна дата не входить у відрізок навігації, переміщаємо вибрану дату до початку
+      const dateStrings = dates.map(d => formatDateLocal(d));
+      if (!dateStrings.includes(currentDate)) {
+        currentDate = navStartDate;
+      }
+      const workingDays = getWorkingDays();
+      dates.forEach(date => {
+        const item = document.createElement('button');
+        item.style.flex = '1';
+        item.style.minWidth = '60px';
+        item.style.display = 'flex';
+        item.style.flexDirection = 'column';
+        item.style.alignItems = 'center';
+        item.style.padding = '0.25rem';
+        item.style.borderRadius = '4px';
+        item.style.cursor = 'pointer';
+        const dateStr = formatDateLocal(date);
+        const dayName = date.toLocaleDateString('uk-UA', { weekday: 'short' });
+        // Показуємо дату у форматі DD.MM (наприклад, 23.06)
+        const dayNum = date.getDate().toString().padStart(2, '0');
+        const monthNum = (date.getMonth() + 1).toString().padStart(2, '0');
+        item.innerHTML = `<div>${dayName}</div><div>${dayNum}.${monthNum}</div>`;
+        const isWorking = workingDays.includes(dateStr);
+        const isSelected = dateStr === currentDate;
+        if (isSelected && isWorking) {
+          // Поєднання робочого дня та вибраної дати
+          item.style.backgroundColor = '#a5a428';
+          item.style.color = '#000';
+        } else if (isSelected) {
+          // Вибрана дата (оранжева)
+          item.style.backgroundColor = '#ff9800';
+          item.style.color = '#000';
+        } else if (isWorking) {
+          // Робочий день (зелений)
+          item.style.backgroundColor = '#4caf50';
+          item.style.color = '#000';
+        } else {
+          // Звичайна дата
+          item.style.backgroundColor = '#2a2a2a';
+          item.style.color = '#fff';
+        }
+        item.addEventListener('click', () => {
+          currentDate = dateStr;
+          renderDateNav();
+          renderSchedule();
+        });
+        dateNav.appendChild(item);
+      });
+    }
+
+    // Відображення розкладу для вибраної дати (30‑хвилинні слоти)
+    function renderSchedule() {
+      const scheduleList = document.getElementById('schedule-list');
+      scheduleList.innerHTML = '';
+      const startHour = 10;
+      const endHour = 20;
+      const appointments = getAppointments();
+      // Створюємо карту зайнятих слотів: 'HH:MM' → { index: індекс події, first: чи перший слот }
+      const slotMap = {};
+      appointments.forEach((app, idx) => {
+        if (app.date !== currentDate) return;
+        const start = new Date(`${app.date}T${app.start}`);
+        const end = new Date(`${app.date}T${app.end}`);
+        let cur = new Date(start);
+        let isFirst = true;
+        while (cur < end) {
+          const tStr = cur.toTimeString().slice(0,5);
+          slotMap[tStr] = { index: idx, first: isFirst };
+          cur = new Date(cur.getTime() + 30 * 60000);
+          isFirst = false;
+        }
+      });
+      // *** Новий рендерінг: проходимо список часів у півгодинних інтервалах і об'єднуємо
+      // послідовні слоти подій у єдиний блок. Це дозволяє уникнути розбиття запису
+      // годинними або півгодинними лініями, щоб він виглядав монолітним, як у прикладі.
+      const baseHeight = 48; // висота одного півгодинного слоту (32px + відступи)
+      // Початковий час у хвилинах (наприклад, 10:00 -> 600 хвилин)
+      let currentMinutes = startHour * 60;
+      const endMinutes = endHour * 60;
+      while (currentMinutes <= endMinutes) {
+        const hour = Math.floor(currentMinutes / 60);
+        const minutes = currentMinutes % 60;
+        const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        const slotInfo = slotMap[timeStr];
+        if (slotInfo && slotInfo.first) {
+          // Початок події: визначаємо тривалість і створюємо блок на весь час події
+          const appt = appointments[slotInfo.index];
+          const start = new Date(`${appt.date}T${appt.start}`);
+          const endDate = new Date(`${appt.date}T${appt.end}`);
+          const durationMin = (endDate - start) / 60000;
+          const slotCount = Math.max(1, Math.round(durationMin / 30));
+          const row = document.createElement('div');
+          // монолітний блок: без вертикальних відступів, розтягнутий на всю висоту
+          row.style.display = 'flex';
+          row.style.alignItems = 'stretch';
+          row.style.padding = '0 0.5rem';
+          row.style.minHeight = `${baseHeight * slotCount}px`;
+          row.style.borderBottom = '1px solid #333';
+          const timeLabel = document.createElement('span');
+          timeLabel.style.width = '60px';
+          timeLabel.style.fontWeight = 'bold';
+          timeLabel.textContent = timeStr;
+          const content = document.createElement('div');
+          content.style.flex = '1';
+          const contacts = getContacts();
+          const contact = contacts[appt.contactIndex];
+          const service = defaultServices.find(s => s.id == appt.serviceId);
+          const contactName = contact ? contact.name : '';
+          const contactPhone = contact ? contact.phone : '';
+          const serviceName = service ? service.name : '';
+          content.innerHTML = `<strong>${serviceName}</strong><br><span>${contactName}${contactPhone ? ' (' + contactPhone + ')' : ''}</span>`;
+          content.style.backgroundColor = '#2a2a2a';
+          content.style.borderLeft = '4px solid #ff9800';
+          content.style.padding = '0.3rem 0.5rem';
+          content.style.borderRadius = '0';
+          row.appendChild(timeLabel);
+          row.appendChild(content);
+          row.addEventListener('click', () => {
+            openModal(timeStr, slotInfo.index);
+          });
+          scheduleList.appendChild(row);
+          // Пропускаємо всі внутрішні півгодинні інтервали цієї події
+          currentMinutes += slotCount * 30;
+          continue;
+        }
+        if (slotInfo && !slotInfo.first) {
+          // Слот є частиною події, але не початковий — пропускаємо без виводу
+          currentMinutes += 30;
+          continue;
+        }
+        // Вільний слот
+        const freeRow = document.createElement('div');
+        freeRow.style.display = 'flex';
+        freeRow.style.alignItems = 'center';
+        freeRow.style.padding = '0.5rem';
+        freeRow.style.minHeight = '32px';
+        // для цілих годин суцільна лінія, для половинок — пунктир
+        freeRow.style.borderBottom = minutes === 0 ? '1px solid #333' : '1px dashed #444';
+        const label = document.createElement('span');
+        label.style.width = '60px';
+        label.style.fontWeight = 'bold';
+        label.textContent = minutes === 0 ? timeStr : '';
+        if (minutes !== 0) {
+          label.style.color = '#555';
+        }
+        freeRow.appendChild(label);
+        const freeContent = document.createElement('div');
+        freeContent.style.flex = '1';
+        freeContent.innerHTML = '<span style="color:#777;">Вільно</span>';
+        freeRow.addEventListener('click', () => {
+          openModal(timeStr);
+        });
+        freeRow.appendChild(freeContent);
+        scheduleList.appendChild(freeRow);
+        // переходимо до наступного слота
+        currentMinutes += 30;
+      }
+    }
+
+    // Генерує список іконок послуг у модальному вікні та встановлює обробники подій.
+    function renderServiceIcons() {
+      const container = document.getElementById('service-icon-list');
+      container.innerHTML = '';
+      defaultServices.forEach(service => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'service-icon';
+        wrapper.setAttribute('data-id', service.id);
+        // Малюнок послуги
+        const img = document.createElement('img');
+        img.src = service.img;
+        img.alt = service.name;
+        img.style.width = '36px';
+        img.style.height = '36px';
+        wrapper.appendChild(img);
+        // Підпис під іконкою (опціонально)
+        const label = document.createElement('span');
+        label.textContent = service.name;
+        wrapper.appendChild(label);
+        wrapper.addEventListener('click', () => {
+          // Зберігаємо ідентифікатор вибраної послуги
+          selectedServiceId = service.id;
+          // Знімаємо попереднє виділення та відмічаємо поточну іконку
+          document.querySelectorAll('.service-icon').forEach(el => el.classList.remove('selected'));
+          wrapper.classList.add('selected');
+          /*
+            Після вибору послуги автоматично обчислюємо кінець запису.
+            Беремо значення початку з поля time, формуємо об’єкт Date і
+            додаємо тривалість послуги. Потім присвоюємо нове значення до
+            поля закінчення. Робимо це тут, а також викликаємо updateEndTime
+            для сумісності з іншими можливими змінами.
+          */
+          const startInput = document.getElementById('modal-start-time');
+          const endInput = document.getElementById('modal-end-time');
+          if (startInput && endInput && service.duration !== undefined) {
+            const startVal = startInput.value;
+            if (startVal) {
+              // value повертає HH:MM у 24-годинному форматі
+              const timePart = startVal.split(' ')[0];
+              const startDate = new Date(`${currentDate}T${timePart}`);
+              const endDate = new Date(startDate.getTime() + service.duration * 60000);
+              const endH = endDate.getHours().toString().padStart(2, '0');
+              const endM = endDate.getMinutes().toString().padStart(2, '0');
+              endInput.value = `${endH}:${endM}`;
+            }
+          }
+          updateEndTime();
+        });
+        container.appendChild(wrapper);
+      });
+    }
+
+    // Заповнює datalist контактів для автозаповнення.
+    function populateContactOptions() {
+      const datalist = document.getElementById('contact-options');
+      datalist.innerHTML = '';
+      const contacts = getContacts();
+      contacts.forEach(contact => {
+        const option = document.createElement('option');
+        option.value = contact.name;
+        datalist.appendChild(option);
+      });
+    }
+
+    // Оновлює час закінчення відповідно до вибраної послуги та часу початку.
+    function updateEndTime() {
+      const startInput = document.getElementById('modal-start-time');
+      const endInput = document.getElementById('modal-end-time');
+      if (!startInput || !endInput) return;
+      const startVal = startInput.value;
+      if (!startVal || !selectedServiceId) {
+        return;
+      }
+      const service = defaultServices.find(s => s.id === selectedServiceId);
+      if (!service || typeof service.duration === 'undefined') return;
+      /*
+        Значення input[type="time"] повертається у форматі "HH:MM" (24‑годинний).
+        Створюємо об'єкт Date на основі поточної дати та часу початку, додаємо
+        тривалість у хвилинах і формуємо рядок «HH:MM». Не використовуємо
+        valueAsDate для уникнення проблем на деяких платформах.
+      */
+      const timePart = startVal.split(' ')[0];
+      const startDate = new Date(`${currentDate}T${timePart}`);
+      const endDate = new Date(startDate.getTime() + service.duration * 60000);
+      const endH = endDate.getHours().toString().padStart(2, '0');
+      const endM = endDate.getMinutes().toString().padStart(2, '0');
+      endInput.value = `${endH}:${endM}`;
+    }
+
+    // Показує модальне вікно для створення або редагування запису
+    function openModal(timeStr, editIndex = null) {
+      const modal = document.getElementById('appointment-modal');
+      const contactInput = document.getElementById('modal-contact-input');
+      const phoneInput = document.getElementById('modal-contact-phone');
+      const startInput = document.getElementById('modal-start-time');
+      const endInput = document.getElementById('modal-end-time');
+      const saveBtn = document.getElementById('modal-save-btn');
+      const deleteBtn = document.getElementById('modal-delete-btn');
+      // Очищаємо або заповнюємо залежно від режиму
+      if (editIndex !== null && editIndex !== undefined) {
+        // Редагування існуючої записи
+        modal.setAttribute('data-edit-index', editIndex);
+        const appt = getAppointments()[editIndex];
+        // Встановлюємо контакт
+        const contacts = getContacts();
+        const contact = contacts[appt.contactIndex] || { name: '', phone: '' };
+        contactInput.value = contact.name;
+        phoneInput.value = contact.phone || '';
+        selectedContactIndex = appt.contactIndex;
+        // Встановлюємо послугу
+        selectedServiceId = appt.serviceId;
+        renderServiceIcons();
+        // Виділяємо вибрану послугу
+        const icon = document.querySelector(`.service-icon[data-id="${selectedServiceId}"]`);
+        if (icon) {
+          icon.classList.add('selected');
+        }
+        // Заповнюємо часи
+        if (startInput) startInput.value = appt.start;
+        if (endInput) endInput.value = appt.end;
+        // Заголовок показує дату
+        document.getElementById('modal-time-display').textContent = `${currentDate}`;
+        // Показуємо кнопку видалення
+        deleteBtn.style.display = '';
+        // Змінюємо текст кнопки збереження
+        saveBtn.textContent = 'Оновити';
+      } else {
+        // Створення нової записи
+        modal.removeAttribute('data-edit-index');
+        contactInput.value = '';
+        phoneInput.value = '';
+        selectedContactIndex = null;
+        selectedServiceId = null;
+        renderServiceIcons();
+        // Оновлюємо список контактів для автозаповнення
+        populateContactOptions();
+        // Заголовок
+        document.getElementById('modal-time-display').textContent = `${currentDate}`;
+        // Встановлюємо час початку
+        if (startInput) startInput.value = timeStr;
+        if (endInput) endInput.value = '';
+        // Ховаємо кнопку видалення
+        deleteBtn.style.display = 'none';
+        // Текст кнопки збереження
+        saveBtn.textContent = 'Зберегти';
+      }
+      // Заповнюємо список автозаповнення контактів перед відкриттям
+      populateContactOptions();
+      // Відкриваємо модальне вікно
+      modal.style.display = 'flex';
+      // Зберігаємо вибраний час як атрибут (для сумісності)
+      modal.setAttribute('data-time', timeStr);
+      // Обчислюємо кінець, якщо можливо
+      updateEndTime();
+    }
+
+    // Закрытие модального окна
+    function closeModal() {
+      document.getElementById('appointment-modal').style.display = 'none';
+    }
+
+    // Збереження або оновлення запису з модального вікна
+    document.getElementById('modal-save-btn').addEventListener('click', () => {
+      const name = document.getElementById('modal-contact-input').value.trim();
+      const phone = document.getElementById('modal-contact-phone').value.trim();
+      const startVal = document.getElementById('modal-start-time').value;
+      const endVal = document.getElementById('modal-end-time').value;
+      // Перевірка: ім'я клієнта обов'язкове
+      if (!name) {
+        alert("Введіть ім'я клієнта.");
+        return;
+      }
+      // Перевірка: обрана послуга
+      if (!selectedServiceId) {
+        alert('Виберіть послугу.');
+        return;
+      }
+      // Перевірка: час початку та кінця
+      if (!startVal || !endVal) {
+        alert('Виберіть час початку та кінця.');
+        return;
+      }
+      // Якщо контакт не існує, додаємо нового
+      let contactIdx = selectedContactIndex;
+      const contacts = getContacts();
+      if (contactIdx === null || contactIdx === undefined) {
+        const nameLower = name.toLowerCase();
+        const foundIndex = contacts.findIndex(c => c.name.toLowerCase() === nameLower);
+        if (foundIndex >= 0) {
+          contactIdx = foundIndex;
+        }
+      }
+      if (contactIdx === null || contactIdx === undefined) {
+        contacts.push({ name, phone });
+        saveContacts(contacts);
+        contactIdx = contacts.length - 1;
+      }
+      const appointments = getAppointments();
+      const modal = document.getElementById('appointment-modal');
+      const editAttr = modal.getAttribute('data-edit-index');
+      if (editAttr && editAttr !== '' && !isNaN(parseInt(editAttr))) {
+        // Редагування існуючого запису
+        const idx = parseInt(editAttr);
+        appointments[idx] = { date: currentDate, start: startVal, end: endVal, contactIndex: contactIdx, serviceId: selectedServiceId };
+      } else {
+        // Створення нового запису
+        appointments.push({ date: currentDate, start: startVal, end: endVal, contactIndex: contactIdx, serviceId: selectedServiceId });
+      }
+      saveAppointments(appointments);
+      closeModal();
+      renderSchedule();
+    });
+
+    document.getElementById('modal-cancel-btn').addEventListener('click', () => {
+      closeModal();
+    });
+
+    // Видалення поточного запису у режимі редагування
+    document.getElementById('modal-delete-btn').addEventListener('click', () => {
+      const modal = document.getElementById('appointment-modal');
+      const editAttr = modal.getAttribute('data-edit-index');
+      if (editAttr && editAttr !== '' && !isNaN(parseInt(editAttr))) {
+        const idx = parseInt(editAttr);
+        const appointments = getAppointments();
+        appointments.splice(idx, 1);
+        saveAppointments(appointments);
+        closeModal();
+        renderSchedule();
+      }
+    });
+
+    // Переміщення навігації вліво/вправо на 1 день
+    document.getElementById('prev-day-btn').addEventListener('click', () => {
+      const date = new Date(navStartDate);
+      date.setDate(date.getDate() - 1);
+      navStartDate = date.toISOString().slice(0, 10);
+      renderDateNav();
+      renderSchedule();
+    });
+    document.getElementById('next-day-btn').addEventListener('click', () => {
+      const date = new Date(navStartDate);
+      date.setDate(date.getDate() + 1);
+      navStartDate = date.toISOString().slice(0, 10);
+      renderDateNav();
+      renderSchedule();
+    });
+
+    // Переключение между экранами
+    document.getElementById('goto-contacts').addEventListener('click', () => {
+      document.getElementById('schedule-section').style.display = 'none';
+      document.getElementById('contacts-section').style.display = 'block';
+    });
+    document.getElementById('back-to-schedule').addEventListener('click', () => {
+      document.getElementById('contacts-section').style.display = 'none';
+      document.getElementById('schedule-section').style.display = 'block';
+      // Обновить расписание при возвращении, чтобы изменения отразились
+      renderSchedule();
+    });
+
+    // Обробник для нижньої кнопки повернення до розкладу
+    document.getElementById('back-to-schedule-bottom').addEventListener('click', () => {
+      document.getElementById('contacts-section').style.display = 'none';
+      document.getElementById('schedule-section').style.display = 'block';
+      renderSchedule();
+    });
+
+    // При удалении контакта обновляем расписание, чтобы убрать записи с удалённым контактом
+    function cleanAppointmentsAfterContactDeletion(deletedIndex) {
+      let appointments = getAppointments().filter(app => app.contactIndex !== deletedIndex);
+      // корректируем индексы
+      appointments = appointments.map(app => {
+        if (app.contactIndex > deletedIndex) {
+          return { ...app, contactIndex: app.contactIndex - 1 };
+        }
+        return app;
+      });
+      saveAppointments(appointments);
+    }
+
+    // Обновление таблицы записей
+    function renderAppointments() {
+      const appointments = getAppointments();
+      // Сортировка по дате и времени
+      appointments.sort((a, b) => new Date(a.date + ' ' + a.start) - new Date(b.date + ' ' + b.start));
+      const tbody = document.querySelector('#appointments-table tbody');
+      tbody.innerHTML = '';
+      appointments.forEach((app, index) => {
+        const contact = getContacts()[app.contactIndex];
+        const service = defaultServices.find(s => s.id == app.serviceId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${app.date}</td>
+          <td>${app.start}–${app.end}</td>
+          <td>${contact ? contact.name : ''}</td>
+          <td>${service ? service.name : ''}</td>
+          <td><button data-index="${index}" class="delete-appointment-btn">Видалити</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Добавление контакта
+    document.getElementById('add-contact-btn').addEventListener('click', () => {
+      const name = document.getElementById('contact-name').value.trim();
+      const phone = document.getElementById('contact-phone').value.trim();
+      if (!name || !phone) {
+        alert("Будь ласка, заповніть ім'я та телефон.");
+        return;
+      }
+      const contacts = getContacts();
+      contacts.push({ name, phone });
+      saveContacts(contacts);
+      document.getElementById('contact-name').value = '';
+      document.getElementById('contact-phone').value = '';
+      renderContacts();
+    });
+
+    // Импорт контактов из CSV или VCF
+    document.getElementById('import-contacts').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const text = evt.target.result;
+        const contacts = getContacts();
+        const imported = [];
+        const extension = file.name.split('.').pop().toLowerCase();
+        if (extension === 'vcf') {
+          // Парсим vCard: каждая карточка начинается с BEGIN:VCARD и заканчивается END:VCARD
+          const cards = text.split(/END:VCARD/i);
+          cards.forEach(card => {
+            if (!card.trim()) return;
+            // Найдём имя (FN:) или (N:)
+            let nameMatch = card.match(/\nFN(?:;[^\n]*)?:([^\n]+)/i);
+            if (!nameMatch) {
+              // fallback к N: (формат Last;First)
+              const nMatch = card.match(/\nN(?:;[^\n]*)?:([^\n]+)/i);
+              if (nMatch) {
+                const parts = nMatch[1].split(';');
+                nameMatch = { 1: parts.reverse().join(' ').trim() };
+              }
+            }
+            const name = nameMatch ? nameMatch[1].replace(/\r/g, '').trim() : '';
+            // Ищем первую строку TEL:
+            const telMatch = card.match(/\nTEL[^:]*:([^\n]+)/i);
+            const phone = telMatch ? telMatch[1].replace(/\r/g, '').trim() : '';
+            if (name) {
+              imported.push({ name, phone });
+            }
+          });
+        } else {
+          // CSV: предполагаем формат "Имя,Телефон"
+          const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+          lines.forEach(line => {
+            const parts = line.split(',');
+            if (parts.length >= 2) {
+              const name = parts[0].trim();
+              const phone = parts[1].trim();
+              if (name) {
+                imported.push({ name, phone });
+              }
+            }
+          });
+        }
+        saveContacts(contacts.concat(imported));
+        renderContacts();
+      };
+      reader.readAsText(file);
+    });
+
+    // Удаление контакта
+    document.getElementById('contacts-table').addEventListener('click', (e) => {
+      if (e.target.classList.contains('delete-contact-btn')) {
+        const index = parseInt(e.target.getAttribute('data-index'));
+        const contacts = getContacts();
+        contacts.splice(index, 1);
+        saveContacts(contacts);
+        renderContacts();
+        // Очистить или пересчитать записи после удаления контакта
+        cleanAppointmentsAfterContactDeletion(index);
+        // Обновить расписание
+        renderSchedule();
+      }
+    });
+
+    // Добавление записи
+    document.getElementById('add-appointment-btn').addEventListener('click', () => {
+      const date = document.getElementById('appointment-date').value;
+      const start = document.getElementById('appointment-start').value;
+      const end = document.getElementById('appointment-end').value;
+      const contactIndex = document.getElementById('appointment-contact').value;
+      const serviceId = parseInt(document.getElementById('appointment-service').value);
+      if (!date || !start || !end || !contactIndex || !serviceId) {
+        alert('Будь ласка, заповніть усі поля для запису.');
+        return;
+      }
+      // Проверяем, что окончание после начала
+      if (start >= end) {
+        alert('Время окончания должно быть позже времени начала.');
+        return;
+      }
+      const appointments = getAppointments();
+      appointments.push({ date, start, end, contactIndex: parseInt(contactIndex), serviceId });
+      saveAppointments(appointments);
+      // Очистить форму
+      document.getElementById('appointment-date').value = '';
+      document.getElementById('appointment-start').value = '';
+      document.getElementById('appointment-end').value = '';
+      document.getElementById('appointment-contact').value = '';
+      document.getElementById('appointment-service').value = '';
+      renderAppointments();
+    });
+
+    // Удаление записи
+    document.getElementById('appointments-table').addEventListener('click', (e) => {
+      if (e.target.classList.contains('delete-appointment-btn')) {
+        const index = parseInt(e.target.getAttribute('data-index'));
+        const appointments = getAppointments();
+        appointments.splice(index, 1);
+        saveAppointments(appointments);
+        renderAppointments();
+      }
+    });
+
+    // Начальная инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+      // Если услуг в localStorage нет, сохраняем начальный набор
+      if (!localStorage.getItem('services')) {
+        localStorage.setItem('services', JSON.stringify(defaultServices));
+      }
+      renderContacts();
+      renderServices();
+      renderDateNav();
+      renderSchedule();
+
+      // ------- Навігація до розділу резервного копіювання -------
+      const manageBackupBtn = document.getElementById('manage-backup');
+      const backupSection = document.getElementById('backup-section');
+      const backFromBackupBtn = document.getElementById('back-from-backup');
+      const exportBackupBtn = document.getElementById('export-backup-btn');
+      const importBackupInput = document.getElementById('import-backup-input');
+
+      if (manageBackupBtn && backupSection) {
+        manageBackupBtn.addEventListener('click', () => {
+          // Перемикаємося в режим резервного копіювання
+          document.getElementById('schedule-section').style.display = 'none';
+          document.getElementById('contacts-section').style.display = 'none';
+          document.getElementById('working-days-section').style.display = 'none';
+          backupSection.style.display = 'block';
+        });
+      }
+
+      if (backFromBackupBtn) {
+        backFromBackupBtn.addEventListener('click', () => {
+          // Повернення до розкладу
+          backupSection.style.display = 'none';
+          document.getElementById('schedule-section').style.display = 'block';
+          renderDateNav();
+          renderSchedule();
+        });
+      }
+
+      if (exportBackupBtn) {
+        exportBackupBtn.addEventListener('click', () => {
+          const data = {
+            contacts: getContacts(),
+            appointments: getAppointments(),
+            workingDays: getWorkingDays(),
+            services: JSON.parse(localStorage.getItem('services') || '[]')
+          };
+          const jsonStr = JSON.stringify(data);
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'grotesk-booking-backup.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      }
+
+      if (importBackupInput) {
+        importBackupInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            try {
+              const data = JSON.parse(evt.target.result);
+              if (data.contacts) saveContacts(data.contacts);
+              if (data.appointments) saveAppointments(data.appointments);
+              if (data.workingDays) saveWorkingDays(data.workingDays);
+              if (data.services) localStorage.setItem('services', JSON.stringify(data.services));
+              renderContacts();
+              renderDateNav();
+              renderSchedule();
+              alert('Дані успішно відновлено.');
+            } catch (err) {
+              alert('Помилка при імпорті: неправильний формат файлу.');
+            }
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      // Додаємо обробник для автозаповнення контакту у модальному вікні
+      document.getElementById('modal-contact-input').addEventListener('input', function() {
+        const nameLower = this.value.trim().toLowerCase();
+        const contacts = getContacts();
+        // Спочатку шукаємо точний збіг (без регістру)
+        let idx = contacts.findIndex(c => c.name.toLowerCase() === nameLower);
+        // Якщо точного збігу нема, шукаємо єдине часткове співпадіння
+        if (idx < 0 && nameLower.length > 0) {
+          const matches = contacts
+            .map((c, i) => ({ name: c.name.toLowerCase(), index: i }))
+            .filter(obj => obj.name.includes(nameLower));
+          if (matches.length === 1) {
+            idx = matches[0].index;
+          }
+        }
+        if (idx >= 0) {
+          selectedContactIndex = idx;
+          document.getElementById('modal-contact-phone').value = contacts[idx].phone;
+        } else {
+          selectedContactIndex = null;
+          document.getElementById('modal-contact-phone').value = '';
+        }
+      });
+
+      // Оновлюємо кінець часу при зміні початку
+      const startInputEl = document.getElementById('modal-start-time');
+      if (startInputEl) {
+        startInputEl.addEventListener('change', updateEndTime);
+      }
+
+      // --------------- Робочі дні: ініціалізація календаря та обробники ---------------
+      // Змінні для поточного місяця/року в секції робочих днів
+      let wdCurrentDate = new Date();
+      let wdMonth = wdCurrentDate.getMonth();
+      let wdYear = wdCurrentDate.getFullYear();
+
+      // Рендер календаря для вибору робочих днів
+      function renderWorkingDaysCalendar(month, year) {
+        const calendarContainer = document.getElementById('working-days-calendar');
+        const monthLabel = document.getElementById('current-month-label');
+        calendarContainer.innerHTML = '';
+        // Виводимо назву місяця та року
+        const monthName = new Date(year, month).toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' });
+        if (monthLabel) monthLabel.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+        // Створюємо таблицю з 7 стовпцями (дні тижня)
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        // Заголовок з днями тижня
+        const headerRow = document.createElement('tr');
+        const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+        daysOfWeek.forEach(d => {
+          const th = document.createElement('th');
+          th.textContent = d;
+          th.style.color = '#ffb74d';
+          th.style.padding = '0.25rem';
+          th.style.border = '1px solid #444';
+          headerRow.appendChild(th);
+        });
+        table.appendChild(headerRow);
+        const firstDayOfMonth = new Date(year, month, 1);
+        const startDay = (firstDayOfMonth.getDay() + 6) % 7; // Робимо понеділок першим
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        let day = 1;
+        // Формуємо рядки
+        for (let i = 0; i < 6; i++) { // максимум 6 рядків
+          const tr = document.createElement('tr');
+          for (let j = 0; j < 7; j++) {
+            const td = document.createElement('td');
+            td.style.width = '14.28%';
+            td.style.padding = '0.5rem';
+            td.style.border = '1px solid #444';
+            td.style.textAlign = 'center';
+            td.style.cursor = 'pointer';
+            if (i === 0 && j < startDay) {
+              td.textContent = '';
+            } else if (day > daysInMonth) {
+              td.textContent = '';
+            } else {
+              const dateStr = formatDateLocal(new Date(year, month, day));
+              td.textContent = day;
+              // Перевіряємо, чи це робочий день
+              const workingDays = getWorkingDays();
+              const isWorking = workingDays.includes(dateStr);
+              // Позначаємо кольором, якщо робочий
+              if (isWorking) {
+                td.style.backgroundColor = '#4caf50';
+                td.style.color = '#000';
+              }
+              // Подвійне виділення: якщо це активний день у навігації
+              if (dateStr === currentDate && isWorking) {
+                td.style.backgroundColor = '#a5a428';
+                td.style.color = '#000';
+              }
+              // Подія кліку: перемикання робочого дня
+              td.addEventListener('click', () => {
+                let days = getWorkingDays();
+                if (days.includes(dateStr)) {
+                  days = days.filter(d => d !== dateStr);
+                } else {
+                  days.push(dateStr);
+                }
+                saveWorkingDays(days);
+                // Перерендерюємо і календар, і навігацію, щоб відобразити зміни
+                renderWorkingDaysCalendar(wdMonth, wdYear);
+                renderDateNav();
+              });
+              day++;
+            }
+            tr.appendChild(td);
+          }
+          table.appendChild(tr);
+        }
+        calendarContainer.appendChild(table);
+      }
+
+      // Відкриття секції робочих днів
+      document.getElementById('manage-working-days').addEventListener('click', () => {
+        document.getElementById('schedule-section').style.display = 'none';
+        document.getElementById('contacts-section').style.display = 'none';
+        document.getElementById('working-days-section').style.display = 'block';
+        // Встановлюємо місяць/рік на поточну дату навігації
+        const cd = new Date(currentDate);
+        wdMonth = cd.getMonth();
+        wdYear = cd.getFullYear();
+        renderWorkingDaysCalendar(wdMonth, wdYear);
+      });
+      // Повернення з секції робочих днів до розкладу
+      document.getElementById('back-from-working-days').addEventListener('click', () => {
+        document.getElementById('working-days-section').style.display = 'none';
+        document.getElementById('schedule-section').style.display = 'block';
+        renderDateNav();
+        renderSchedule();
+      });
+      // Переміщення місяця назад/вперед
+      document.getElementById('prev-month-btn').addEventListener('click', () => {
+        if (wdMonth === 0) {
+          wdMonth = 11;
+          wdYear--;
+        } else {
+          wdMonth--;
+        }
+        renderWorkingDaysCalendar(wdMonth, wdYear);
+      });
+      document.getElementById('next-month-btn').addEventListener('click', () => {
+        if (wdMonth === 11) {
+          wdMonth = 0;
+          wdYear++;
+        } else {
+          wdMonth++;
+        }
+        renderWorkingDaysCalendar(wdMonth, wdYear);
+      });
+      // Зберегти робочі дні та повернутися
+      document.getElementById('save-working-days').addEventListener('click', () => {
+        // Збереження уже відбулось у handler кліку на даті.
+        document.getElementById('working-days-section').style.display = 'none';
+        document.getElementById('schedule-section').style.display = 'block';
+        renderDateNav();
+        renderSchedule();
+      });
+    });
+  </script>
+</body>
+</html>
