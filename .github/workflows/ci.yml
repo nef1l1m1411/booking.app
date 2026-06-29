@@ -1,0 +1,26 @@
+name: CI
+
+# Legacy repo — minimal quality gate. Lint only booking.html (the small file);
+# index.html (~5MB inline base64) is deliberately not linted. Warn-only.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: HTMLHint (warn-only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: HTMLHint booking.html
+        continue-on-error: true
+        run: npx -y htmlhint@1 booking.html
